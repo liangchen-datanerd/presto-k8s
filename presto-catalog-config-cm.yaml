@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: presto-catalog-config-cm
+  labels:
+    app: presto-coordinator
+data:
+  hive.properties: |-
+    connector.name=hive-hadoop2
+    hive.metastore.uri=thrift://10.8.8.252:9083
+  mysql.properties: |-
+    connector.name=mysql
+    connection-url=jdbc:mysql://10.8.8.252:3306
+    connection-user=root
+    connection-password=123456
