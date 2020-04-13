@@ -7,7 +7,8 @@ metadata:
 data:
   hive.properties: |-
     connector.name=hive-hadoop2
-    hive.metastore.uri=thrift://10.8.8.252:9083
+    hive.metastore.uri=thrift://10.10.1.128:9083
+    hive.config.resources=/etc/hadoop/conf/core-site.xml,/etc/hadoop/conf/hdfs-site.xml
   mysql.properties: |-
     connector.name=mysql
     connection-url=jdbc:mysql://10.8.8.252:3306

@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: presto-coordinator
+spec:
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: presto-coordinator
+  template:
+    metadata:
+      labels:
+        app: presto-coordinator
+    spec:
+      containers:
+        - name: presto-coordinator
+          image: chenlianguu/presto-server:dm-0.208
+          command: ["bash", "-c", "sh /root/bootstrap/bootstrap.sh"]
+          ports:
+            - name: http-coord
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: COORDINATOR_NODE
+              value: "true"
+          volumeMounts:
+            - name: presto-config-volume
+              mountPath: /root/bootstrap
+            - name: presto-catalog-config-volume
+              mountPath: /root/catalog
+            - name: presto-data-volume
+              mountPath: /var/presto/data
+          readinessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            httpGet:
+              path: /v1/cluster
+              port: http-coord
+      volumes:
+        - name: presto-config-volume
+          configMap:
+            name: presto-config-cm
+        - name: presto-catalog-config-volume
+          configMap:
+            name: presto-catalog-config-cm
+        - name: presto-data-volume
+          emptyDir: {}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    app: presto-coordinator
+  name: presto-coordinator-service
+spec:
+  ports:
+    - port: 8080
+      targetPort: http-coord
+      name: http-coord
+  selector:
+    app: presto-coordinator
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: presto-worker
+spec:
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: presto-worker
+  template:
+    metadata:
+      labels:
+        app: presto-worker
+    spec:
+      initContainers:
+        - name: wait-coordinator
+          image:  chenlianguu/presto-server:dm-0.208
+          command: ["bash", "-c", "until curl -sf http://presto-coordinator-service:8080/ui/; do echo 'waiting for coordinator started...'; sleep 2; done;"]
+      containers:
+        - name: presto-worker
+          image: chenlianguu/presto-server:dm-0.208
+          command: ["bash", "-c", "sh /root/bootstrap/bootstrap.sh"]
+          ports:
+            - name: http-coord
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: COORDINATOR_NODE
+              value: "false"
+          volumeMounts:
+            - name: presto-config-volume
+              mountPath: /root/bootstrap
+            - name: presto-catalog-config-volume
+              mountPath: /root/catalog
+            - name: presto-data-volume
+              mountPath: /var/presto/data
+          readinessProbe:
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            exec:
+              command: ["bash", "-c", "curl -s http://presto-coordinator-service:8080/v1/node | tr ',' '\n' | grep -s $(hostname -i)"]
+      volumes:
+        - name: presto-config-volume
+          configMap:
+            name: presto-config-cm
+        - name: presto-catalog-config-volume
+          configMap:
+            name: presto-catalog-config-cm
+        - name: presto-data-volume
+          emptyDir: {}
