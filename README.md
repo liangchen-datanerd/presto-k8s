@@ -865,7 +865,7 @@ presto-worker         3         3         3            3           23m
   systemctl restart docker
   ```
 
-- presto查询hive数据出现io.prestosql.spi.PrestoException: Could not obtain block: BP-1548201263错误，`show tables` `desc table`正常显示，通过在presto的pod容器内部使用hdfs 命令ls可以查看目录，但是cat hdfs上面的文件报相同的错误，说明无法联通datanode默认的50010端口，使用telnet命令可查看远程服务器是否开放次端口，通过开放端口或者解决防火墙方式解决，能够telnet成功该端口即可解决该问题
+- presto查询hive数据出现io.prestosql.spi.PrestoException: Could not obtain block: BP-1548201263错误，`show tables` `desc table`正常显示，通过在presto的pod容器内部使用hdfs 命令ls可以查看目录，但是cat hdfs上面的文件报相同的错误，说明无法联通datanode默认的50010端口，使用telnet命令可查看远程服务器是否开放次端口，通过开放端口或者解决防火墙方式解决，能够telnet成功该端口即可解决该问题 参考[presto hive connector error reading from HDFS](https://groups.google.com/forum/#!topic/presto-users/4yWpzR-zrds)
 
 ## 六、注意事项
 
@@ -884,4 +884,4 @@ presto-worker         3         3         3            3           23m
 - [Docker镜像加速器](https://docker_practice.gitee.io/install/mirror.html)
 - [Presto连接MySQL](https://www.jianshu.com/p/ba730747cc8c)
 - [Presto with Kubernetes and S3 — Deployment](https://medium.com/@uprush/presto-with-kubernetes-and-s3-deployment-4e262849244a)
-- [Presto-Powered S3 Data Warehouse on Kubernetes](
+- [Presto-Powered S3 Data Warehouse on Kubernetes](https://medium.com/@joshua_robinson/presto-powered-s3-data-warehouse-on-kubernetes-aea89d2f40e8)
