@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: presto
+  namespace: presto
+spec:
+  ports:
+  - port: 8080
+  selector:
+    app: presto-coordinator
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: presto-coordinator
+    namespace: presto
+spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+    matchLabels:
+        app: presto-coordinator
+    template:
+    metadata:
+        labels:
+        app: presto-coordinator
+    spec:
+        containers:
+        - name: presto-coordinator
+            image: reg.chebai.org/presto/presto-server:332
+            command: ["bash", "-c", "sh /root/bootstrap/bootstrap.sh"]
+            ports:
+            - containerPort: 8080
+            env:
+            - name: COORDINATOR_NODE
+                value: "true"
+            volumeMounts:
+            - name: presto-config-volume
+                mountPath: /root/bootstrap
+            - name: presto-catalog-config-volume
+                mountPath: /root/catalog
+            - name: presto-data-volume
+                mountPath: /var/presto/data
+        volumes:
+        - name: presto-config-volume
+            configMap:
+            name: presto-config-cm
+        - name: presto-catalog-config-volume
+            configMap:
+            name: presto-catalog-config-cm
+        - name: presto-data-volume
+            emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: presto-worker
+    namespace: presto
+spec:
+    replicas: 2
+    revisionHistoryLimit: 10
+    selector:
+    matchLabels:
+        app: presto-worker
+    template:
+    metadata:
+        labels:
+        app: presto-worker
+    spec:
+        containers:
+        - name: presto-worker
+            image: reg.chebai.org/presto/presto-server:332
+            command: ["bash", "-c", "sh /root/bootstrap/bootstrap.sh"]
+            ports:
+            - containerPort: 8080
+            env:
+            - name: COORDINATOR_NODE
+                value: "false"
+            volumeMounts:
+            - name: presto-config-volume
+                mountPath: /root/bootstrap
+            - name: presto-catalog-config-volume
+                mountPath: /root/catalog
+            - name: presto-data-volume
+                mountPath: /var/presto/data
+        volumes:
+        - name: presto-config-volume
+            configMap:
+            name: presto-config-cm
+        - name: presto-catalog-config-volume
+            configMap:
+            name: presto-catalog-config-cm
+        - name: presto-data-volume
+            emptyDir: {}
+---
+apiVersion: v1
+kind: Pod
+metadata:
+    name: presto-cli
+    namespace: presto
+spec:
+    containers:
+    - name: presto-cli
+    image: reg.chebai.org/presto/presto-cli:332
+    command: ["tail", "-f", "/dev/null"]
+    imagePullPolicy: Always
+    restartPolicy: Always

@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: presto-config-cm
+  namespace: presto
+  labels:
+    app: presto-coordinator
+data:
+  bootstrap.sh: |-
+    #!/bin/bash
+
+    cd /root/bootstrap
+
+    mkdir -p $PRESTO_HOME/etc/catalog
+
+    cat ./node.properties > $PRESTO_HOME/etc/node.properties
+    cat ./jvm.config > $PRESTO_HOME/etc/jvm.config
+    cat ./config.properties > $PRESTO_HOME/etc/config.properties
+    cat ./log.properties > $PRESTO_HOME/etc/log.properties
+    
+    echo "" >> $PRESTO_HOME/etc/node.properties
+    echo "node.id=$HOSTNAME" >> $PRESTO_HOME/etc/node.properties
+
+    sed -i 's/${COORDINATOR_NODE}/'$COORDINATOR_NODE'/g' $PRESTO_HOME/etc/config.properties
+
+    if ${COORDINATOR_NODE}; 
+    then
+      echo coordinator
+    else 
+      sed -i '7d' $PRESTO_HOME/etc/config.properties
+      echo worker
+    fi
+
+    for cfg in ../catalog/*; do
+      cat $cfg > $PRESTO_HOME/etc/catalog/${cfg##*/}
+    done
+
+    $PRESTO_HOME/bin/launcher run --verbose
+  node.properties: |-
+    node.environment=production
+    node.data-dir=/var/presto/data
+  jvm.config: |-
+    -server
+    -Xmx16G
+    -XX:-UseBiasedLocking
+    -XX:+UseG1GC
+    -XX:G1HeapRegionSize=32M
+    -XX:+ExplicitGCInvokesConcurrent
+    -XX:+ExitOnOutOfMemoryError
+    -XX:+UseGCOverheadLimit
+    -XX:+HeapDumpOnOutOfMemoryError
+    -XX:ReservedCodeCacheSize=512M
+    -Djdk.attach.allowAttachSelf=true
+    -Djdk.nio.maxCachedBufferSize=2000000
+    -Dpresto-temporarily-allow-java8=true
+    -DHADOOP_USER_NAME=hdfs
+  config.properties: |-
+    coordinator=${COORDINATOR_NODE}
+    node-scheduler.include-coordinator=true
+    http-server.http.port=8080
+    query.max-memory=10GB
+    query.max-memory-per-node=1GB
+    query.max-total-memory-per-node=2GB
+    discovery-server.enabled=true
+    discovery.uri=http://presto:8080
+  log.properties: |-
+    io.prestosql=DEBUG
