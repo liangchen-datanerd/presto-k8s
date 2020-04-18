@@ -64,4 +64,4 @@ data:
     discovery-server.enabled=true
     discovery.uri=http://presto:8080
   log.properties: |-
-    io.prestosql=DEBUG
+    io.prestosql=INFO

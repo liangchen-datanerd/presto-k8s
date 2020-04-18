@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+    name: presto-cli
+    namespace: presto
+spec:
+    containers:
+    - name: presto-cli
+      image: reg.chebai.org/presto/presto-cli:332
+      command: ["tail", "-f", "/dev/null"]
+      imagePullPolicy: Always
+    restartPolicy: Always
